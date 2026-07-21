@@ -58,21 +58,32 @@ python3 main.py
 4. Start a voice chat in the group.
 5. Send `/play <song name>`.
 
-## Deploying on Render
+## Deploying on Render (Web Service)
 
-This repo ships with `render.yaml` and a `Procfile` for a **Background
-Worker** deployment (this bot has no HTTP server, so it must be a worker,
-not a web service).
+This repo is set up to run as a Render **Web Service** (needed for
+Render's free tier, which doesn't offer free background workers). Since
+Telegram bots don't normally need to listen on a port, `main.py` starts a
+tiny `aiohttp` server (`GET /` → `"Music bot is alive."`) purely so
+Render's health check passes and the service isn't killed.
 
 1. Push this project to a GitHub repo.
 2. In Render, choose **New → Blueprint**, point it at your repo — it will
-   read `render.yaml` automatically. (Or manually create a **Background
-   Worker**, build command `pip install -r requirements.txt`, start
-   command `python3 main.py`.)
+   read `render.yaml` automatically. (Or manually create a **Web
+   Service** with:
+   - **Build command:** `apt-get update && apt-get install -y ffmpeg && pip install -r requirements.txt`
+   - **Start command:** `python3 main.py`)
 3. Fill in the environment variables (`API_ID`, `API_HASH`, `BOT_TOKEN`,
    `SESSION_STRING`, etc.) in the Render dashboard — do **not** commit
-   these to git.
+   these to git. Render sets `PORT` automatically; you don't need to add it.
 4. Deploy. Check the logs for `Music bot is up and running.`
+
+**Free-tier caveat:** Render's free web services spin down after periods
+of inactivity and spin back up on the next incoming request. Since
+nothing calls your health-check URL on its own, your bot may go to sleep
+and briefly delay before responding to the next Telegram command. A
+free/paid uptime-pinger (e.g. cron-job.org hitting your Render URL every
+few minutes) works around this — or upgrade to a paid instance for
+always-on.
 
 ## Notes & limitations
 
